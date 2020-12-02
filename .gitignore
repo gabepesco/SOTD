@@ -74,3 +74,4 @@ fabric.properties
 /.idea/modules.xml
 /venv/
 /src/env.py
+/src/.cache
