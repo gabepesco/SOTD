@@ -75,4 +75,4 @@ fabric.properties
 /venv/
 /src/env.py
 /src/.cache
-/src/config.py
+/config.py
