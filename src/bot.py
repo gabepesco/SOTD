@@ -19,9 +19,9 @@ def main():
     client = discord.Client(intents=intents)
 
     # Spotify API Initialization
-    os.environ['SPOTIPY_REDIRECT_URI'] = os.getenv('SPOTIPY_REDIRECT_URI')
-    os.environ['SPOTIPY_CLIENT_ID'] = os.getenv('SPOTIPY_CLIENT_ID')
-    os.environ['SPOTIPY_CLIENT_SECRET'] = os.getenv('SPOTIPY_CLIENT_SECRET')
+    # Since we named the spotify environment variables correctly in the .env file,
+    # we don't need to set them again in the environment.
+
     auth_manager = SpotifyOAuth(scope='playlist-modify-public')
     sp = spotipy.Spotify(auth_manager=auth_manager)
 
