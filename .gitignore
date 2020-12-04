@@ -72,7 +72,5 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 /.idea/modules.xml
-/venv/
 /src/.cache
-
 /src/.env
