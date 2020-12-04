@@ -73,4 +73,3 @@ fabric.properties
 
 /.idea/modules.xml
 /src/.cache
-/src/.env
