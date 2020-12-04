@@ -2,10 +2,11 @@
 import os
 import discord
 import spotipy
-import aiocron
+from aiocron import crontab
 from datetime import datetime
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+
 
 def main():
     # get variables
@@ -24,9 +25,8 @@ def main():
     auth_manager = SpotifyOAuth(scope='playlist-modify-public')
     sp = spotipy.Spotify(auth_manager=auth_manager)
 
-
     # This function notifies people at 22:00 that it is their day.
-    @aiocron.crontab("00 22 * * *")
+    @crontab("00 22 * * *")
     async def notify():
         channel_id = int(os.getenv('CHANNEL_ID'))
         channel = client.get_channel(channel_id)
@@ -42,7 +42,6 @@ def main():
 
         await channel.send(f'Hey {user.mention}, it\'s your song of the day!')
         print(f'Notified {user} on day {day}.')
-
 
     @client.event
     async def on_message(message):
@@ -64,7 +63,6 @@ def main():
             sp.playlist_add_items(playlist_uri, [track_uri])
             await message.channel.send(f'Added {message.author}\'s song to the playlist.')
             print(f'Added {message.author}\'s song to the playlist.')
-
 
     @client.event
     async def on_ready():
