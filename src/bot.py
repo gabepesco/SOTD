@@ -46,7 +46,6 @@ def main():
         if not eval(os.getenv('ADDED_SONG')):
             await channel.send(f'Hey {user}, it\'s your song of the day!')
             print(f'Notified {user}.')
-            os.environ['ADDED_SONG'] = "True"
 
         print(f'{user} has already posted today.')
 
@@ -60,7 +59,6 @@ def main():
 
         if not eval(os.getenv('ADDED_SONG')):
             await channel.send(f'Hey {user.mention}, you only have 10 more minutes to add a song.')
-            os.environ['ADDED_SONG'] = "True"
             print(f'Notified {user} late.')
 
         else:
@@ -94,6 +92,7 @@ def main():
             # add to playlist with spotify API
             sp.playlist_add_items(playlist_uri, [track_uri])
             await message.channel.send(f'Added {message.author}\'s song to the playlist.')
+            os.environ['ADDED_SONG'] = "True"
             print(f'Added {message.author}\'s song to the playlist.')
 
     @client.event
