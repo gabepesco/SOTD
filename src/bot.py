@@ -83,9 +83,8 @@ def main():
     @client.event
     async def on_message(message):
         channel_id = int(os.getenv('CHANNEL_ID'))
-        user_of_day = get_user_of_the_day()
         print(message.author, get_user_of_the_day())
-        if 'https://open.spotify.com/track/' in message.content and message.channel.id == channel_id and message.author == user_of_day:
+        if 'https://open.spotify.com/track/' in message.content and message.channel.id == channel_id:
             track_uri = get_uri_from_message(message.content)
             playlist_uri = os.getenv('SPOTIFY_PLAYLIST_URI')
 
