@@ -58,7 +58,7 @@ def main():
         user = get_user_of_the_day()
 
         if not eval(os.getenv('ADDED_SONG')):
-            await channel.send(f'Hey {user.mention}, you only have 10 more minutes to add a song.')
+            await channel.send(f'Hey {user.mention}, you only have 15 more minutes to add a song.')
             print(f'Notified {user} late.')
 
         else:
