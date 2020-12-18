@@ -45,9 +45,6 @@ def main():
         user = get_user_of_the_day()
         if not eval(os.getenv('ADDED_SONG')):
             await channel.send(f'Hey {user}, it\'s your song of the day!')
-            print(f'Notified {user}.')
-
-        print(f'{user} has already posted today.')
 
     @crontab("45 23 * * *")
     async def late_notify():
@@ -59,10 +56,6 @@ def main():
 
         if not eval(os.getenv('ADDED_SONG')):
             await channel.send(f'Hey {user.mention}, you only have 15 more minutes to add a song.')
-            print(f'Notified {user} late.')
-
-        else:
-            print(f'Skipped notifying {user} late.')
 
     @crontab('01 00 * * *')
     async def reset_added_song():
@@ -83,7 +76,6 @@ def main():
     @client.event
     async def on_message(message):
         channel_id = int(os.getenv('CHANNEL_ID'))
-        print(message.author, get_user_of_the_day())
         if 'https://open.spotify.com/track/' in message.content and message.channel.id == channel_id:
             track_uri = get_uri_from_message(message.content)
             playlist_uri = os.getenv('SPOTIFY_PLAYLIST_URI')
@@ -92,7 +84,7 @@ def main():
             sp.playlist_add_items(playlist_uri, [track_uri])
             await message.channel.send(f'Added {message.author}\'s song to the playlist.')
             os.environ['ADDED_SONG'] = "True"
-            print(f'Added {message.author}\'s song to the playlist.')
+            # print(f'Added {message.author}\'s song to the playlist.')
 
     @client.event
     async def on_ready():
