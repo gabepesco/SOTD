@@ -61,6 +61,10 @@ def main():
     async def reset_added_song():
         os.environ['ADDED_SONG'] = "False"
 
+        channel_id = int(os.getenv('CHANNEL_ID'))
+        channel = client.get_channel(channel_id)
+        await channel.purge(check=lambda m: m.author == client.user)
+
     def get_uri_from_message(url):
         words = str.split(url, " ")
         for word in words:
@@ -80,11 +84,17 @@ def main():
             track_uri = get_uri_from_message(message.content)
             playlist_uri = os.getenv('SPOTIFY_PLAYLIST_URI')
 
-            # add to playlist with spotify API
-            sp.playlist_add_items(playlist_uri, [track_uri])
-            await message.channel.send(f'Added {message.author}\'s song to the playlist.')
-            os.environ['ADDED_SONG'] = "True"
-            # print(f'Added {message.author}\'s song to the playlist.')
+            tracks = sp.playlist_items(playlist_id=playlist_uri, fields='items.track.id', limit=100)
+            playlist_tracks = set(i['track']['id'] for i in tracks['items'])
+            string = track_uri.split(":")[2]
+
+            if string not in playlist_tracks:
+                # add to playlist with spotify API
+                sp.playlist_add_items(playlist_uri, [track_uri])
+                os.environ['ADDED_SONG'] = "True"
+                await message.add_reaction('👍')
+            else:
+                await message.channel.send(f'{message.user.mention}: The song was not added, it is already in the playlist.')
 
     @client.event
     async def on_ready():
@@ -92,7 +102,7 @@ def main():
         print(f'{client.user} is connected to the following guild:\n'
               f'{guild.name}(id: {guild.id})')
 
-        notify.start()
+        # notify.start()
         late_notify.start()
         reset_added_song.start()
 
