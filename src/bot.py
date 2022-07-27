@@ -7,6 +7,8 @@ from datetime import datetime
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 
+global added_song
+
 
 def main():
     # load env variables
@@ -25,41 +27,38 @@ def main():
     auth_manager = SpotifyOAuth(scope='playlist-modify-public')
     sp = spotipy.Spotify(auth_manager=auth_manager)
 
-    def get_user_of_the_day():
+    def get_users_of_the_day():
         guild = discord.utils.find(lambda g: g.name == os.getenv('DISCORD_GUILD'), client.guilds)
 
         day = datetime.today().weekday()
-        user_id = eval(os.getenv('DAY_USERID_DICT'))[day]
+        user_ids = eval(os.getenv('DAY_USERID_DICT'))[day]
 
-        for member in guild.members:
-            if member.id == user_id:
-                user = member
+        return [member for member in guild.members if member.id in user_ids]
 
-        return user
-
-    @crontab("00 12 * * *")
+    @crontab("00 11 * * *")
     async def notify():
-        # This function notifies people at 22:00 that it is their day.
+        # This function notifies people at 11:00 that it is their day.
         channel_id = int(os.getenv('CHANNEL_ID'))
         channel = client.get_channel(channel_id)
-        user = get_user_of_the_day()
-        if not eval(os.getenv('ADDED_SONG')):
-            await channel.send(f'Hey {user}, it\'s your song of the day!')
 
-    @crontab("45 23 * * *")
+        for user, added in added_song.items():
+            if not added:
+                await channel.send(f'Hey {user.nick}, it\'s your song of the day!')
+
+    @crontab("00 23 * * *")
     async def late_notify():
         # This function pings people at 23:45 that it is their day.
-
         channel_id = int(os.getenv('CHANNEL_ID'))
         channel = client.get_channel(channel_id)
-        user = get_user_of_the_day()
 
-        if not eval(os.getenv('ADDED_SONG')):
-            await channel.send(f'Hey {user.mention}, you only have 15 more minutes to add a song.')
+        for user, added in added_song.items():
+            if not added:
+                await channel.send(f'Hey {user.mention}, you have an hour left to add a song.')
 
     @crontab('01 00 * * *')
     async def reset_added_song():
-        os.environ['ADDED_SONG'] = "False"
+        global added_song
+        added_song = {user: False for user in get_users_of_the_day()}
 
         channel_id = int(os.getenv('CHANNEL_ID'))
         channel = client.get_channel(channel_id)
@@ -79,7 +78,9 @@ def main():
 
     @client.event
     async def on_message(message):
+        global added_song
         channel_id = int(os.getenv('CHANNEL_ID'))
+
         if 'https://open.spotify.com/track/' in message.content and message.channel.id == channel_id:
             track_uri = get_uri_from_message(message.content)
             playlist_uri = os.getenv('SPOTIFY_PLAYLIST_URI')
@@ -110,10 +111,19 @@ def main():
             string = track_uri.split(":")[2]
 
             if string not in playlist_tracks:
-                # add to playlist with spotify API
-                sp.playlist_add_items(playlist_uri, [track_uri])
-                os.environ['ADDED_SONG'] = "True"
-                await message.add_reaction('👍')
+                if message.author in added_song:
+                    if not added_song[message.author]:
+                        # add to playlist with spotify API
+                        sp.playlist_add_items(playlist_uri, [track_uri])
+                        added_song[message.author] = True
+                        await message.add_reaction('👍')
+                    else:
+                        await message.channel.send(f'{message.author.mention}: Woah there pardner, you best watch yourself. I got my eye on you.')
+                else:
+                    # add to playlist with spotify API
+                    sp.playlist_add_items(playlist_uri, [track_uri])
+                    added_song[message.author] = True
+                    await message.add_reaction('👍')
             else:
                 await message.channel.send(f'{message.author.mention}: The song was not added, it is already in the playlist.')
 
@@ -123,9 +133,12 @@ def main():
         print(f'{client.user} is connected to the following guild:\n'
               f'{guild.name}(id: {guild.id})')
 
-        # notify.start()
+        notify.start()
         late_notify.start()
         reset_added_song.start()
+
+        global added_song
+        added_song = {user: False for user in get_users_of_the_day()}
 
     client.run(token)
 
