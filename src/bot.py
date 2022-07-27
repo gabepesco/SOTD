@@ -84,8 +84,29 @@ def main():
             track_uri = get_uri_from_message(message.content)
             playlist_uri = os.getenv('SPOTIFY_PLAYLIST_URI')
 
-            tracks = sp.playlist_items(playlist_id=playlist_uri, fields='items.track.id', limit=100)
-            playlist_tracks = set(i['track']['id'] for i in tracks['items'])
+            i = 1
+            offset = 0
+
+            tracks = sp.playlist_items(
+                playlist_id=playlist_uri,
+                fields='items.track.id',
+                limit=100,
+                offset=offset,
+                additional_types=('track',)
+            )['items']
+
+            while len(tracks) == i * 100:
+                i += 1
+                offset += 100
+                tracks += sp.playlist_items(
+                    playlist_id=playlist_uri,
+                    fields='items.track.id',
+                    limit=100,
+                    offset=offset,
+                    additional_types=('track',)
+                )['items']
+
+            playlist_tracks = {i['track']['id'] for i in tracks}
             string = track_uri.split(":")[2]
 
             if string not in playlist_tracks:
@@ -94,7 +115,7 @@ def main():
                 os.environ['ADDED_SONG'] = "True"
                 await message.add_reaction('👍')
             else:
-                await message.channel.send(f'{message.user.mention}: The song was not added, it is already in the playlist.')
+                await message.channel.send(f'{message.author.mention}: The song was not added, it is already in the playlist.')
 
     @client.event
     async def on_ready():
