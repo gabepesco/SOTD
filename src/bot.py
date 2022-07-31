@@ -47,7 +47,7 @@ def main():
 
     @crontab("00 23 * * *")
     async def late_notify():
-        # This function pings people at 23:45 that it is their day.
+        # This function pings people at 23:00 that they have one hour left to add a song.
         channel_id = int(os.getenv('CHANNEL_ID'))
         channel = client.get_channel(channel_id)
 
@@ -130,12 +130,7 @@ def main():
     @client.event
     async def on_ready():
         guild = discord.utils.find(lambda g: g.name == os.getenv('DISCORD_GUILD'), client.guilds)
-        print(f'{client.user} is connected to the following guild:\n'
-              f'{guild.name}(id: {guild.id})')
-
-        notify.start()
-        late_notify.start()
-        reset_added_song.start()
+        print(f'{client.user} is connected to the following guild:\n{guild.name}(id: {guild.id})')
 
         global added_song
         added_song = {user: False for user in get_users_of_the_day()}
