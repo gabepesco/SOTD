@@ -1,17 +1,29 @@
 import os
 import time
+import datetime
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
 # import whisperx
 import discord
 from discord.ext import commands, voice_recv
 
-# load faster-whisper model (8-bit mixed precision)
-model_size = "large-v3-turbo"
-device="cuda"
-compute_type = "int8_float16"
-whisper_model = WhisperModel(model_size, device=device, compute_type=compute_type)
-# self.whisper_model = whisperx.load_model(model_size, device=device, compute_type=compute_type)
+def transcribe_wav_file(wav_path):
+    # Load the model only when needed
+    model_size = "large-v3-turbo"
+    device = "cuda"
+    compute_type = "int8_float16"
+    # whisper_model = whisperx.load_model(model_size, device=device, compute_type=compute_type)
+    whisper_model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    # Extract base name without extension
+    base_name = os.path.splitext(os.path.basename(wav_path))[0]
+    transcript_path = f"transcriptions/{base_name}.txt"
+    segments, info = whisper_model.transcribe(wav_path)
+    transcript = ""
+    for segment in segments:
+        transcript += f"[{segment.start:.2f}s - {segment.end:.2f}s] {segment.text}\n"
+    with open(transcript_path, "w") as f:
+        f.write(transcript)
+    del whisper_model  # Explicitly delete to free VRAM
 
 class WhisperBot(commands.Bot):
     def __init__(self, command_prefix):
@@ -44,12 +56,12 @@ class WhisperBot(commands.Bot):
             if not voice_client:
                 channel = after.channel
                 voice_client = await channel.connect(cls=voice_recv.VoiceRecvClient)
-                join_time = time.time()
-                # Register the WaveSink
-                if not hasattr(self, 'audio_sink'):
-                    self.audio_sink = voice_recv.WaveSink(f"audio/{join_time}.wav")
+                # Use ISO 8601 timestamp for file name
+                join_time = datetime.datetime.now().isoformat(timespec="seconds").replace(":", "-")
+                audio_path = f"audio/{join_time}.wav"
+                self.audio_sink = voice_recv.WaveSink(audio_path)
+                self.last_audio_file = audio_path  # Store last audio file path
                 voice_client.listen(self.audio_sink)
-                # print(f"Bot joined voice channel: {channel.name}")
 
         # If someone leaves the target voice channel, check if bot is alone
         if before.channel and before.channel.id == self.VOICE_CHANNEL_ID:
@@ -65,11 +77,14 @@ class WhisperBot(commands.Bot):
                         self.audio_sink.cleanup()
                         del self.audio_sink
                     await voice_client.disconnect(force=True)
-                    # print(f"Bot left voice channel: {channel.name}")
+                    # Trigger transcription after leaving
+                    if hasattr(self, 'last_audio_file') and os.path.exists(self.last_audio_file):
+                        transcribe_wav_file(self.last_audio_file)
 
     async def on_audio_data(self, sink: voice_recv.AudioSink, user: discord.Member, data: bytes):
         # This is called when audio data is received
-        filename = f"audio/{user.id}_{int(time.time())}.wav"
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds").replace(":", "-")
+        filename = f"audio/{user.id}_{timestamp}.wav"
         with open(filename, "wb") as f:
             f.write(data)
         print(f"Saved audio for {user.display_name} to {filename}")
